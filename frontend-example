@@ -1,0 +1,242 @@
+import React, { useState, useEffect } from 'react';
+import { Modal } from 'react-bootstrap';
+import ModHeader from './modHeader'
+import { HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi'
+
+
+
+export default function ItemMod(props) {
+    const { modalClose, item, handleIncrement, modalShow } = props;
+    const [amount, setAmount] = useState(1)
+    const [info, setinfo] = useState("dets");
+    const [imgIndex, setImgIndex] = useState(0)
+    const [init, setInit] = useState(true);
+
+    //image fader logic, stops an initial fade with init timer,
+    // then sets timeOut to fader 
+    let fader;
+    useEffect(() => {
+        if (item.images.length > 1) {
+            console.log(item.images.length)
+            if (!init) {
+                fader = setTimeout(() => {
+                    let index = imgIndex;
+                    if (index < item.images.length - 1) {
+                        index++
+                        setImgIndex(index)
+                    } else {
+                        setImgIndex(0)
+                    }
+                }, 8000)
+            }
+            else {
+                fader = setTimeout(() => {
+                    setImgIndex(1)
+                    setInit(false)
+                }, 5000)
+            }
+
+        }
+    }, [init, imgIndex])
+
+    //handles image changing by going threw ImgIndex array after 
+    //canceling fader timeout
+    const previous = () => {
+        clearTimeout(fader)
+        setInit(false)
+        if (imgIndex === 0) {
+            setImgIndex(item.images.length - 1)
+        }
+        else {
+            setImgIndex(imgIndex - 1)
+        }
+    }
+
+    const next = () => {
+        clearTimeout(fader)
+        setInit(false)
+        if (imgIndex < item.images.length - 1) {
+            setImgIndex(imgIndex + 1)
+        }
+        else {
+            setImgIndex(0)
+        }
+    }
+
+    const add = () => {
+        handleIncrement({ product_id: item.product_id, amount });
+        modalShow('added');
+    }
+
+    const title = {
+        textAlign: 'center'
+    }
+    const infoor = {
+        color: '#FB9DCF',
+        marginBottom: '0',
+        marginTop: '6px'
+    }
+    const list = {
+        listStyleType: 'none',
+        lineHeight: '.5'
+    }
+    const li = {
+        color: '#FB9DCF',
+        cursor: 'pointer'
+    }
+    const selected = {
+        color: '#616161',
+        cursor: 'pointer'
+    }
+    const fade = {
+        height: "600px",
+        width: "100%",
+        marginBottom: '25px',
+        overflow: 'hidden',
+        backgroundColor: '#f2f2f2',
+        borderRadius: '10px'
+    }
+    const image = {
+        overflow: 'hidden',
+        position: 'relative',
+        width: '100%',
+        height: '100%'
+    }
+    const arrowDiv = {
+        width: '100%',
+        position: 'absolute',
+        top: '50%',
+        zIndex: '10',
+        opacity: '0.5'
+    }
+    const left = {
+        position: 'absolute',
+        left: "0"
+    }
+    const right = {
+        position: 'absolute',
+        right: '0'
+    }
+
+    let menu;
+
+    if (info === 'dets') {
+        menu =
+            <div>
+                <p className="100 text-center">{item.disc}</p>
+                <p className="100 text-center">{item.subDisc}</p>
+            </div>
+    }
+    if (info === 'use') {
+        menu =
+            <div>
+                <p className="100 text-center">{item.dir}</p>
+            </div>
+    }
+    if (info === 'ing') {
+        menu =
+            <div>
+                <p className="100 text-center">{item.hero}</p>
+                <p className="100 text-center">{item.ing}</p>
+            </div>
+    }
+
+
+    return (
+        <div>
+            <ModHeader modalClose={modalClose} title={item.title} />
+            <Modal.Body>
+                <div style={fade}>
+                    <div style={image}>
+                        {item.images.map((i, index) => (
+                            <div key={index}
+                                style={{
+                                    height: "600px",
+                                    width: "100%",
+                                    backgroundImage: `url(${i.ref})`,
+                                    backgroundSize: 'auto 100% ',
+                                    backgroundPosition: 'center',
+                                    backgroundRepeat: 'no-repeat',
+                                    margin: 'auto',
+                                    position: 'absolute'
+                                }}
+                                className={
+                                    (init && index === 0) ?
+                                        "" :
+                                        (init && index !== 0) ?
+                                            "invisible"
+                                            :
+                                            (imgIndex === index) ?
+                                                "fadeIn"
+                                                :
+                                                "fadeOut"
+                                }
+                            />
+                        ))}
+                        {(item.images.length > 1) ?
+                            <div style={arrowDiv}>
+                                <HiOutlineChevronLeft style={left} size={'1.9em'} onClick={previous} />
+                                <HiOutlineChevronRight style={right} size={'1.9em'} onClick={next} />
+                            </div>
+                            :
+                            null
+                        }
+
+                    </div>
+                </div>
+
+                <div>
+                    <h5 style={title}>{item.title}</h5>
+                </div>
+                <div className="pt-4">
+                    <ul style={list} className="d-flex justify-content-around">
+                        <li style={(info === "dets") ? selected : li} onClick={() => setinfo('dets')}><h6>
+                            DETIALS
+                            </h6></li>
+                        <li style={(info === "use") ? selected : li} onClick={() => setinfo('use')}><h6>
+                            DIRECTIONS
+                            </h6></li>
+                        <li style={(info === "ing") ? selected : li} onClick={() => setinfo('ing')}><h6>
+                            INGREDIENTS
+                            </h6></li>
+                    </ul>
+                    <hr />
+                </div>
+                {menu}
+
+            </Modal.Body>
+            <Modal.Footer >
+                {item.amount > 0 ?
+                    <div className="d-flex justify-content-between">
+                        <div className="d-flex pr-4">
+                            <h4 className="pr-3" style={infoor}>AMOUNT </h4>
+                            <select onChange={e => setAmount(parseInt(e.target.value))}>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button onClick={add} className="butn butn-hot">ADD</button>
+                        </div>
+                    </div>
+                    :
+                    <div className="w-100 text-center">
+                        <h3 style={{ color: '#FB9DCF' }}>SOLD OUT</h3>
+                    </div>
+                }
+            </Modal.Footer>
+        </div>
+    )
+}
+
+
