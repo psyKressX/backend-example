@@ -29,7 +29,7 @@ export default function ImageUploader(props) {
                     data.sort((a, b) => {
                         return a - b
                     })
-                    setFiles(data);
+                    setSort(data);
                 })
                 .catch(err => console.log(err))
         }
