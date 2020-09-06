@@ -1,0 +1,178 @@
+import React, { useState, useRef, useEffect } from 'react'
+import Loader from 'react-loader-spinner';
+import { HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi'
+
+
+export default function ImageUploader(props) {
+    //return files should be a useState parent function
+    //componentID is optional for image allocation and retrieval, ie; image carousel or product  
+    let { returnFiles, componentID } = props
+    const [files, setFiles] = useState([]);
+    const [errors, setErrors] = useState();
+    const [loading, setLoading] = useState(false)
+
+    //if a component ID is passed as a prop it will fetch all images 
+    //currently assigned to that id
+    useEffect(() => {
+        let controller = new AbortController()
+        console.log(componentID)
+        if (componentID) {
+            fetch('/get-images', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: "product_id",
+                    val: componentID
+                })
+            }).then(res => res.json())
+                .then(data => {
+                    data.sort((a, b) => {
+                        return a - b
+                    })
+                    setFiles(data);
+                })
+                .catch(err => console.log(err))
+        }
+        return () => {
+            controller.abort();
+        }
+    }, [props.componentID])
+
+    //runs returnFiles prop on file state change
+    useEffect(() => {
+        returnFiles(files)
+    }, [files])
+
+    //sends FormData request with the file and a componentID if applicable
+    const addImage = (e) => {
+        e.preventDefault()
+        setLoading(true)
+        const file = e.target.files[0]
+        let formData = new FormData();
+        formData.append('file', file)
+        if (componentID) { formData.append('product_id', componentID) }
+        fetch('/add-image', {
+            method: 'post',
+            credentials: "same-origin",
+            body: formData
+        }).then(res => {
+            setLoading(false)
+            if (res.status === 200) {
+                res.json().then(data => {
+                    let old = [...files];
+                    old.push(data)
+                    setSort(old)
+                })
+            }
+            if (res.status === 400) {
+                res.text().then(data => {
+                    setErrors(data)
+                })
+            }
+        }).catch(err => console.log(err))
+    }
+
+    //creates an image ID array then runs deleteFiles
+    const deleteAll = () => {
+        if (files.length > 0) {
+            const fileIDArrray = files.map(f => f.id)
+            deleteFiles(fileIDArrray)
+        }
+    }
+    //bulk deletes array of image id's
+    const deleteFiles = (fileIDArray) => {
+        fetch('/delete-image', {
+            method: 'post',
+            credentials: "same-origin",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(fileIDArray)
+        }).then(res => {
+            if (res.status === 200) {
+                let old = [...files]
+                fileIDArray.forEach(img => {
+                    const index = old.findIndex(i => i.product_id === img)
+                    old.splice(index, 1)
+                })
+                setSort(old)
+            }
+        })
+    }
+
+    // sets sort values based on index initially and after move splicing
+    const setSort = data => {
+        data.forEach((file, index) => {
+            file.sort = index
+        })
+        setFiles(data)
+    }
+    //move splices image closer to 0 index then setSorts
+    const sortLeft = index => {
+        if (index > 0) {
+            let copy = [...files]
+            copy.splice(index - 1, 0, copy.splice(index, 1)[0]);
+            setSort(copy)
+        }
+    }
+    //move splices image away from 0 index then setSorts
+    const sortRight = index => {
+        if (index < files.length - 1) {
+            let copy = [...files];
+            copy.splice(index + 1, 0, copy.splice(index, 1)[0]);
+            setSort(copy)
+        }
+    }
+
+
+
+    const upload = useRef()
+    return (
+        <div>
+            <div>
+                <h5 className='title m-2'>Add image .JPG</h5>
+                <div style={{ display: 'flex' }}>
+                    {loading ?
+                        <Loader type="TailSpin" color="#fb9dcf" height={40} width={40} />
+                        :
+                        <button className="butn butn-hot" onClick={() => upload.current.click()}>UPLOAD</button>
+                    }
+                    <button className="butn butn-not ml-4" onClick={deleteAll}>DELETE ALL</button>
+                </div>
+                <input type="file" ref={upload} accept="image/jpeg,image/jpg" onChange={e => addImage(e)} style={{ display: 'none' }} />
+                <div>
+                    {errors ? <small className="errorMessage">{errors.image}</small> : null}
+                </div>
+            </div>
+            <div style={{ width: '100%', margin: '15px 0', padding: '15px 0', backgroundColor: '#f2f2f2' }} >
+                {(files.length > 0) ?
+                    <div style={{ display: 'flex', flexFlow: 'row wrap', justifyContent: 'start' }}>
+                        {files.map((f, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', margin: "0px 14px", position: "relative" }}>
+                                <div style={{ position: "absolute", zIndex: '10', width: "100%", top: "0", display: "flex", justifyContent: "space-between" }}>
+                                    <HiOutlineChevronLeft onClick={() => sortLeft(i)} />
+                                    <HiOutlineChevronRight onClick={() => sortRight(i)} />
+                                </div>
+
+                                <div className='p-4'>
+                                    <img className='tNail' src={f.ref} alt="" />
+                                </div>
+                                <div>
+                                    <button className="butn butn-not" onClick={e => deleteFiles([files[i].id])}>DELETE</button>
+                                </div>
+
+                            </div>
+                        ))}
+                    </div>
+                    :
+                    <div style={{ textAlign: 'center' }}>
+                        <h5 >Empty</h5>
+                    </div>
+                }
+            </div>
+        </div>
+    )
+}
+
+//default empty returnFiles function to block "is not a function" errors
+ImageUploader.defaultProps = {
+    returnFiles: (x) => { },
+}
