@@ -10,29 +10,31 @@ export default function Carousel(props) {
   const [fade, setFade] = useState(0);
   const [init, setInit] = useState(true);
 
-  //handles image changing by going threw ImgIndex array after
-  //canceling fader timeout
+  //if initial state true, turns to false to activate fader classes 
   const clear = useCallback(() => {
     if (init) {
       setInit(false);
     }
   }, [init]);
-
+  
+  //get next and prev index with modulo bounds
   const getNext = (index, length) => {
     return (index + 1) % length;
   };
   const getPrev = (index, length) => {
     return (((index - 1) % length) + length) % length;
   };
-  const previous = useCallback(() => {
+  
+  //next and prev callbacks for controls and fader timer
+  const prev = useCallback(() => {
     clear();
     setFade(imgIndex);
-    setImgIndex(getPrev(imgIndex, children.length));
+    setImgIndex( getPrev(imgIndex, children.length) );
   }, [clear, children.length, imgIndex]);
   const next = useCallback(() => {
     clear();
     setFade(imgIndex);
-    setImgIndex(getNext(imgIndex, children.length));
+    setImgIndex( getNext(imgIndex, children.length) );
   }, [clear, children.length, imgIndex]);
 
   const select = (index) => {
@@ -40,9 +42,8 @@ export default function Carousel(props) {
     setFade(imgIndex);
     setImgIndex(index);
   };
-
-  //image fader logic, stops an initial fade with init timer,
-  // then sets timeOut to fader
+  
+  // sets fader to run next() after delay and clears fader in return
   useEffect(() => {
     let fader;
     if (children.length > 1) {
@@ -54,7 +55,9 @@ export default function Carousel(props) {
       };
     }
   }, [init, imgIndex, delay, children.length, next, props]);
-
+  
+  //maps through children and has dynamic classes based on if init, index===imgIndex or index===fade, else invisible
+  //below map we have controls
   return (
     <div style={divStyle}>
       <div
