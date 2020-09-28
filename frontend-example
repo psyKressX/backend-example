@@ -26,7 +26,7 @@ export default function Carousel(props) {
   };
   
   //next and prev callbacks for controls and fader timer
-  const prev = useCallback(() => {
+  const previous = useCallback(() => {
     clear();
     setFade(imgIndex);
     setImgIndex( getPrev(imgIndex, children.length) );
